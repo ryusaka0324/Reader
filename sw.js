@@ -1,6 +1,6 @@
-const CACHE = 'shioriyomi-v5';
+const CACHE = 'shioriyomi-v6';
 const ASSETS = [
-  './', './index.html', './styles.css?v=5', './app.js?v=5', './manifest.webmanifest',
+  './', './index.html', './styles.css?v=6', './app.js?v=6', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './01_天王寺剛花_第一話_放課後.txt'
 ];
 

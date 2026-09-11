@@ -565,7 +565,7 @@
     const el = els.content.querySelector(`p[data-index="${index}"]`);
     if (!el) return;
     currentIndex = index;
-    el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start', inline: 'start' });
+    scrollReaderToElement(el, smooth);
     requestAnimationFrame(resetOuterViewportX);
     updateProgress();
     clearTimeout(saveTimer);
@@ -638,11 +638,34 @@
   }
 
   function resetOuterViewportX() {
-    // iOS Safari can move the page viewport horizontally when a wide vertical-writing
-    // element is brought into view. Keep only the reader itself horizontally scrollable.
+    // The document is fixed in v6, but keep these guards for browsers restoring an
+    // old horizontal page offset from session history.
     document.documentElement.scrollLeft = 0;
     document.body.scrollLeft = 0;
     try { window.scrollTo(0, 0); } catch (_) {}
+  }
+
+  function scrollReaderToElement(el, smooth = true) {
+    // Do NOT use Element.scrollIntoView here. On iOS Safari it may pan the *page*
+    // horizontally when the article uses vertical-rl, shifting the whole UI left.
+    // Only the reader element is allowed to move.
+    const rr = els.reader.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    const behavior = smooth ? 'smooth' : 'auto';
+
+    if (settings.mode === 'horizontal') {
+      const topInset = 14;
+      const deltaY = er.top - rr.top - topInset;
+      els.reader.scrollTo({ top: Math.max(0, els.reader.scrollTop + deltaY), left: 0, behavior });
+      return;
+    }
+
+    // vertical-rl: place the target column near the right reading edge. Using
+    // scrollBy with a physical delta avoids RTL/negative-scrollLeft differences.
+    const rightInset = Math.max(18, settings.padding);
+    const desiredRight = rr.right - rightInset;
+    const deltaX = er.right - desiredRight;
+    els.reader.scrollBy({ left: deltaX, top: 0, behavior });
   }
 
   function applySettings({ keepPosition = true } = {}) {
