@@ -696,7 +696,7 @@
 
     els.loadSampleBtn.addEventListener('click', async () => {
       try {
-        const r = await fetch('./samples/01_天王寺剛花_第一話_放課後.txt');
+        const r = await fetch('./01_天王寺剛花_第一話_放課後.txt');
         const text = await r.text();
         pendingImport = { text, filename: '01_天王寺剛花_第一話_放課後.txt' };
         els.metaWork.value = '天王寺剛花';
