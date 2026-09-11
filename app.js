@@ -37,7 +37,7 @@
   let pendingBookEdit = null;
   let pendingImport = null;
 
-  const defaultSettings = { mode: 'horizontal', fontSize: 19, lineHeight: 1.9, padding: 28, theme: 'paper', tapToggle: true };
+  const defaultSettings = { mode: 'horizontal', fontSize: 18, lineHeight: 1.8, padding: 28, theme: 'paper', tapToggle: true };
   let settings = { ...defaultSettings };
 
   function normalizeText(text) {
@@ -363,6 +363,10 @@
     requestAnimationFrame(() => jumpToIndex(currentIndex, false));
   }
 
+  function isDialogueParagraph(text) {
+    return /^[「『]/.test(String(text || '').trim());
+  }
+
   function renderContent() {
     els.content.replaceChildren();
     const frag = document.createDocumentFragment();
@@ -371,6 +375,10 @@
       node.dataset.index = String(i);
       node.textContent = p.text;
       if (p.heading) node.classList.add('heading');
+      if (isDialogueParagraph(p.text)) node.classList.add('dialogue');
+      if (isDialogueParagraph(p.text) && isDialogueParagraph(paragraphs[i + 1]?.text)) {
+        node.classList.add('dialogue-followed');
+      }
       frag.appendChild(node);
     });
     els.content.appendChild(frag);
@@ -760,7 +768,14 @@
 
   async function init() {
     db = await openDb();
-    settings = { ...defaultSettings, ...((await getMeta('settings')) || {}) };
+    const savedSettings = (await getMeta('settings')) || {};
+    // v5: move users who were still on the old defaults to the new, slightly
+    // smaller defaults. Explicitly customized values are preserved.
+    if (savedSettings.fontSize === 19 && savedSettings.lineHeight === 1.9) {
+      savedSettings.fontSize = 18;
+      savedSettings.lineHeight = 1.8;
+    }
+    settings = { ...defaultSettings, ...savedSettings };
     applySettings({ keepPosition: false });
     bindEvents();
     await renderBookList();
