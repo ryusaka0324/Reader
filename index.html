@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f2ea" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="栞読" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>栞読 - TXT Reader</title>
+</head>
+<body>
+  <div id="app" class="app">
+    <header class="topbar">
+      <button id="libraryBtn" class="icon-btn" aria-label="本棚を開く" title="本棚">☰</button>
+      <div class="title-wrap">
+        <div id="bookTitle" class="book-title">栞読</div>
+        <div id="progressText" class="progress-text">TXTを読み込んでください</div>
+      </div>
+      <button id="bookmarkBtn" class="icon-btn" aria-label="しおりを挟む" title="しおり">♧</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="表示設定" title="表示設定">Aa</button>
+    </header>
+
+    <div id="progressBar" class="progress-bar" aria-hidden="true"><div id="progressFill"></div></div>
+
+    <main id="reader" class="reader horizontal" tabindex="0" aria-label="本文">
+      <div id="emptyState" class="empty-state">
+        <div class="empty-mark">栞</div>
+        <h1>長文を、読むための画面。</h1>
+        <p>作品 → 部・期 → 話で整理しながら、縦書き・横書き、読書位置、しおりを端末内に保存します。</p>
+        <button id="openFileHero" class="primary-btn">TXTを本棚に追加</button>
+        <button id="loadSampleBtn" class="secondary-btn">同梱サンプルを開く</button>
+      </div>
+      <article id="content" class="content" hidden></article>
+    </main>
+
+    <nav id="bottomBar" class="bottom-bar" hidden aria-label="読書操作">
+      <button id="prevBookmarkBtn">‹ 栞</button>
+      <button id="modeBtn">縦書き</button>
+      <button id="tocBtn">目次・栞</button>
+      <button id="nextBookmarkBtn">栞 ›</button>
+    </nav>
+
+    <div id="backdrop" class="backdrop" hidden></div>
+
+    <aside id="libraryPanel" class="panel panel-left library-panel" aria-hidden="true">
+      <div class="panel-head">
+        <div>
+          <h2>本棚</h2>
+          <div class="panel-subtitle">作品 → 部・期 → 話</div>
+        </div>
+        <button class="close-panel" data-close aria-label="閉じる">×</button>
+      </div>
+      <div class="panel-body">
+        <button id="openFileBtn" class="primary-btn full">＋ TXTを追加</button>
+        <input id="fileInput" type="file" accept=".txt,text/plain" hidden />
+        <div id="bookList" class="book-list"></div>
+      </div>
+    </aside>
+
+    <aside id="settingsPanel" class="panel panel-right" aria-hidden="true">
+      <div class="panel-head">
+        <h2>表示設定</h2>
+        <button class="close-panel" data-close aria-label="閉じる">×</button>
+      </div>
+      <div class="panel-body settings">
+        <div class="segmented" role="group" aria-label="読み方向">
+          <button id="horizontalBtn" class="active">横読み</button>
+          <button id="verticalBtn">縦読み</button>
+        </div>
+        <label>文字サイズ <span id="fontSizeValue"></span>
+          <input id="fontSizeRange" type="range" min="15" max="30" step="1" />
+        </label>
+        <label>行間 <span id="lineHeightValue"></span>
+          <input id="lineHeightRange" type="range" min="1.4" max="2.4" step="0.1" />
+        </label>
+        <label>余白 <span id="paddingValue"></span>
+          <input id="paddingRange" type="range" min="16" max="56" step="4" />
+        </label>
+        <label>背景
+          <select id="themeSelect">
+            <option value="paper">紙</option>
+            <option value="white">白</option>
+            <option value="dark">暗</option>
+          </select>
+        </label>
+        <label class="switch-row"><span>画面タップでバー表示/非表示</span><input id="tapToggle" type="checkbox" /></label>
+      </div>
+    </aside>
+
+    <aside id="tocPanel" class="panel panel-right wide" aria-hidden="true">
+      <div class="panel-head">
+        <h2>目次・しおり</h2>
+        <button class="close-panel" data-close aria-label="閉じる">×</button>
+      </div>
+      <div class="panel-body">
+        <h3>目次</h3>
+        <div id="tocList" class="toc-list"></div>
+        <div class="section-title"><h3>しおり</h3><button id="addBookmarkInPanel" class="text-btn">＋ 現在位置</button></div>
+        <div id="bookmarkList" class="bookmark-list"></div>
+      </div>
+    </aside>
+
+    <div id="bookMetaDialog" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="bookMetaDialogTitle">
+      <div class="modal-card meta-modal-card">
+        <div class="modal-kicker" id="metaFilename"></div>
+        <h2 id="bookMetaDialogTitle">本棚へ追加</h2>
+        <label class="field-label">作品名
+          <input id="metaWork" type="text" maxlength="80" list="workSuggestions" placeholder="例：魔法少女戦争" />
+          <datalist id="workSuggestions"></datalist>
+        </label>
+        <label class="field-label">部・期・巻
+          <input id="metaSection" type="text" maxlength="80" list="sectionSuggestions" placeholder="例：第1期 / ドイツ編 / 本編" />
+          <datalist id="sectionSuggestions"></datalist>
+        </label>
+        <label class="field-label">話タイトル
+          <input id="metaEpisode" type="text" maxlength="120" placeholder="例：第一話 放課後" />
+        </label>
+        <label class="field-label">並び順
+          <input id="metaOrder" type="number" min="0" step="1" inputmode="numeric" placeholder="例：1" />
+          <span class="field-help">同じ部・期の中で小さい数字から並びます。</span>
+        </label>
+        <div class="modal-actions">
+          <button id="cancelBookMeta" class="secondary-btn">キャンセル</button>
+          <button id="saveBookMeta" class="primary-btn">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="bookmarkDialog" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="bookmarkDialogTitle">
+      <div class="modal-card">
+        <h2 id="bookmarkDialogTitle">しおりを挟む</h2>
+        <p id="bookmarkExcerpt" class="excerpt"></p>
+        <input id="bookmarkNote" type="text" maxlength="80" placeholder="メモ（任意）" />
+        <div class="modal-actions">
+          <button id="cancelBookmark" class="secondary-btn">キャンセル</button>
+          <button id="saveBookmark" class="primary-btn">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+  </div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
