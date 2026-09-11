@@ -382,7 +382,40 @@
       frag.appendChild(node);
     });
     els.content.appendChild(frag);
+    updateBookmarkMarkers();
     updateProgress();
+  }
+
+  function updateBookmarkMarkers({ flashIndex = null } = {}) {
+    const bookmarkMap = new Map();
+    for (const bm of currentBookmarks) {
+      const list = bookmarkMap.get(bm.paragraphIndex) || [];
+      list.push(bm);
+      bookmarkMap.set(bm.paragraphIndex, list);
+    }
+
+    els.content.querySelectorAll('p[data-index]').forEach(node => {
+      const index = Number(node.dataset.index);
+      const matches = bookmarkMap.get(index) || [];
+      node.classList.toggle('bookmarked', matches.length > 0);
+      node.classList.remove('bookmark-target');
+      if (matches.length) {
+        const notes = matches.map(bm => bm.note).filter(Boolean);
+        node.dataset.bookmarkCount = String(matches.length);
+        node.title = notes.length ? `しおり：${notes.join(' / ')}` : `しおり ${matches.length}件`;
+      } else {
+        delete node.dataset.bookmarkCount;
+        node.removeAttribute('title');
+      }
+    });
+
+    if (flashIndex !== null) {
+      const target = els.content.querySelector(`p[data-index="${flashIndex}"]`);
+      if (target?.classList.contains('bookmarked')) {
+        target.classList.add('bookmark-target');
+        setTimeout(() => target.classList.remove('bookmark-target'), 950);
+      }
+    }
   }
 
   function extractToc() {
@@ -599,6 +632,7 @@
     await putBookmark(bm);
     currentBookmarks = await bookmarksFor(currentBook.id);
     renderBookmarks();
+    updateBookmarkMarkers({ flashIndex: currentIndex });
     els.bookmarkDialog.hidden = true;
     showToast('しおりを挟みました');
   }
@@ -616,13 +650,18 @@
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.textContent = `段落 ${bm.paragraphIndex + 1} ・ ${new Date(bm.createdAt).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
       go.append(label, ex, meta);
-      go.addEventListener('click', () => { jumpToIndex(bm.paragraphIndex); closePanels(); });
+      go.addEventListener('click', () => {
+        jumpToIndex(bm.paragraphIndex);
+        setTimeout(() => updateBookmarkMarkers({ flashIndex: bm.paragraphIndex }), 180);
+        closePanels();
+      });
       const actions = document.createElement('div'); actions.className = 'bookmark-actions';
       const del = document.createElement('button'); del.textContent = '削除';
       del.addEventListener('click', async () => {
         await deleteBookmarkDb(bm.id);
         currentBookmarks = await bookmarksFor(currentBook.id);
         renderBookmarks();
+        updateBookmarkMarkers();
       });
       actions.appendChild(del); card.append(go, actions); els.bookmarkList.appendChild(card);
     });
@@ -635,6 +674,7 @@
     if (direction > 0) target = currentBookmarks.find(b => b.paragraphIndex > currentIndex) || currentBookmarks[0];
     else target = [...currentBookmarks].reverse().find(b => b.paragraphIndex < currentIndex) || currentBookmarks[currentBookmarks.length - 1];
     jumpToIndex(target.paragraphIndex);
+    setTimeout(() => updateBookmarkMarkers({ flashIndex: target.paragraphIndex }), 180);
   }
 
   function resetOuterViewportX() {
