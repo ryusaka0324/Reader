@@ -558,6 +558,7 @@
     if (!el) return;
     currentIndex = index;
     el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start', inline: 'start' });
+    requestAnimationFrame(resetOuterViewportX);
     updateProgress();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(savePosition, smooth ? 500 : 80);
@@ -628,6 +629,14 @@
     jumpToIndex(target.paragraphIndex);
   }
 
+  function resetOuterViewportX() {
+    // iOS Safari can move the page viewport horizontally when a wide vertical-writing
+    // element is brought into view. Keep only the reader itself horizontally scrollable.
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+    try { window.scrollTo(0, 0); } catch (_) {}
+  }
+
   function applySettings({ keepPosition = true } = {}) {
     const idx = keepPosition && currentBook ? getReadingIndex() : currentIndex;
     document.documentElement.style.setProperty('--font-size', `${settings.fontSize}px`);
@@ -640,13 +649,19 @@
     els.reader.classList.toggle('vertical', settings.mode === 'vertical');
     els.horizontalBtn.classList.toggle('active', settings.mode === 'horizontal');
     els.verticalBtn.classList.toggle('active', settings.mode === 'vertical');
-    els.modeBtn.textContent = settings.mode === 'horizontal' ? '縦書き' : '横書き';
+    els.modeBtn.textContent = settings.mode === 'horizontal' ? '縦書きへ' : '横書きへ';
     els.fontSizeRange.value = settings.fontSize; els.fontSizeValue.textContent = `${settings.fontSize}px`;
     els.lineHeightRange.value = settings.lineHeight; els.lineHeightValue.textContent = settings.lineHeight.toFixed(1);
     els.paddingRange.value = settings.padding; els.paddingValue.textContent = `${settings.padding}px`;
     els.themeSelect.value = settings.theme; els.tapToggle.checked = settings.tapToggle;
+    if (settings.mode === 'horizontal') els.reader.scrollLeft = 0;
+    else els.reader.scrollTop = 0;
+    resetOuterViewportX();
     setMeta('settings', settings);
-    if (keepPosition && currentBook) requestAnimationFrame(() => requestAnimationFrame(() => jumpToIndex(idx, false)));
+    if (keepPosition && currentBook) requestAnimationFrame(() => requestAnimationFrame(() => {
+      jumpToIndex(idx, false);
+      resetOuterViewportX();
+    }));
   }
 
   function setMode(mode) { settings.mode = mode; applySettings(); }

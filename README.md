@@ -60,3 +60,10 @@
 ## v3 修正
 - iPhone Safariで hidden のモーダルが初期表示される問題を修正。
 - GitHub Pages更新時に古いCSS/JSがService Workerキャッシュに残りにくい方式へ変更。
+
+
+## v4 fixes
+- iPhone Safariで縦書き後に画面全体が左へずれる現象を修正
+- 縦書き本文の不要な左マージンを削除
+- 読書モード切替時に外側viewportの横スクロールをリセット
+- 切替ボタンを「縦書きへ / 横書きへ」に変更
